@@ -1,0 +1,17 @@
+=== SVM Classifier ===
+F1-Score: 0.90
+Precision: 0.90
+Recall: 0.90
+AUC-ROC: 0.97
+
+=== Random Forest ===
+F1-Score: 1.00
+AUC-ROC: 1.00
+
+=== Isolation Forest ===
+Anomaly Rate on test set: 5.26%
+
+Training samples (after SMOTE): 72
+Test samples: 19
+Class distribution before SMOTE: {1: 36, 0: 36}
+Class distribution after SMOTE: {1: 36, 0: 36}
