@@ -1,36 +1,36 @@
 # Sentinel: Project Health & Telemetry Analysis System
 ## Architectural & File Flow Documentation
 
-This document explains the end-to-end architecture, file details, and execution flows for the **Sentinel API Gateway** and the **Sentinel ML Service** (`sentinel-ml`). This is a complete breakdown of how the systems extract telemetry data, process features, and run machine learning models to identify project risk levels, calculate stability, and explain risk drivers.
+This document explains the end-to-end architecture, file details, and execution flows for the three core modules of the project:
+1. **Module 1: Sentinel API Ingestion Gateway** (`api-gateway`)
+2. **Module 2: Sentinel ML Inference Service** (`sentinel-ml`)
+3. **Module 3: Generative AI Prescription Engine** (`sentinel-prescription`)
 
 ---
 
 ## 1. System Architecture Overview
 
-Sentinel is a microservice-based system designed to monitor and evaluate software project health by extracting and analyzing metrics from three primary developer platforms: **GitHub**, **Jira**, and **Discord**. 
+Sentinel is a microservice-based system designed to monitor and evaluate software project health by extracting metrics from three developer platforms (**GitHub**, **Jira**, and **Discord**), processing those signals using machine learning models, and generating detailed remediation prescriptions using a LLM-driven prescription engine.
 
 ```mermaid
 flowchart TD
-    subgraph Data Extraction (API Gateway)
+    subgraph Module 1: Ingestion Gateway (api-gateway)
         Scheduler[scheduler.js] -->|Cron Trigger| Service[telemetryService.js]
         Router[telemetryRouter.js] -->|HTTP POST /collect| Service
         Service --> GH_Adapter[githubAdapter.js]
         Service --> Jira_Adapter[jiraAdapter.js]
         Service --> Discord_Adapter[discordAdapter.js]
+        Service -->|Sequelize ORM| DB[(MySQL Database: sentinel_health)]
     end
 
-    subgraph Data Sources
+    subgraph External APIs
         GH_Adapter -->|Octokit API| GitHub[(GitHub API)]
         Jira_Adapter -->|Axios REST| Jira[(Jira Cloud API)]
         Discord_Adapter -->|Discord.js| Discord[(Discord Gateway)]
     end
 
-    subgraph Persistence
-        Service -->|Sequelize ORM| DB[(MySQL Database: sentinel_health)]
-    end
-
-    subgraph Machine Learning & Explainer (sentinel-ml)
-        API[main.py: FastAPI] -->|POST /api/infer| FE[feature_engineering.py]
+    subgraph Module 2: ML Inference Engine (sentinel-ml)
+        ML_API[main.py: FastAPI] -->|POST /api/infer| FE[feature_engineering.py]
         DB -->|Read Raw Metrics & Messages| FE
         FE -->|Vector Construction & Imputation| SVM_Model[models/svm_classifier.joblib]
         FE -->|Vector Construction & Imputation| RF_Model[models/rf_stability.joblib]
@@ -42,7 +42,19 @@ flowchart TD
         
         FE -->|SHAP Values| Explainer[explainer.py: Explainer]
         RF_Model --> Explainer
-        Explainer -->|Top 3 Risk Drivers| InfResults[(Inference Results in DB)]
+        Explainer -->|Top 3 Risk Drivers| DB
+    end
+
+    subgraph Module 3: AI Prescription Engine (sentinel-prescription)
+        Presc_API[main.py: FastAPI] -->|POST /api/prescription/generate| PService[prescription_service.py]
+        ML_API -->|Awaits synchronous trigger| Presc_API
+        DB -->|Read Inference & Telemetry| PService
+        PService -->|Build Prompt| PB[prompt_builder.py]
+        PB -->|LLM Prompt| Client[llm_client.py: LangChain Client]
+        Client -->|Llama-3 70B via Groq| Groq[(Groq Primary / Fallback API)]
+        Groq -->|Raw JSON response| Parser[response_parser.py: Pydantic v2]
+        Parser -->|Validated Prescription| PService
+        PService -->|Save to prescriptions table| DB
     end
 ```
 
@@ -162,7 +174,7 @@ The Machine Learning service is responsible for transforming raw metrics, runnin
 7. **`main.py`**
    * **Purpose**: FastAPI microservice endpoint.
    * **Endpoints**:
-     * `POST /api/infer`: Evaluates project health for a given `scan_id`. It queries the DB for raw metrics, processes features, scales them, evaluates class predictions (SVM), calculates stability (RF), flags anomalies (IF), extracts SHAP drivers, saves the intelligence results directly into MySQL, and returns the compiled metrics as JSON.
+     * `POST /api/infer`: Evaluates project health for a given `scan_id`. It queries the DB for raw metrics, processes features, scales them, evaluates class predictions (SVM), calculates stability (RF), flags anomalies (IF), extracts SHAP drivers, saves the intelligence results directly into MySQL, and triggers Module 3 synchronously if the label is `AT_RISK` to return the AI prescription in the payload.
      * `POST /api/train`: Asynchronously triggers `train.py` as a FastAPI background task.
      * `GET /api/health`: Provides uptime state, model load status, and MySQL connection checks.
      * `GET /api/infer/history/{project_id}`: Queries past inference records.
@@ -172,90 +184,80 @@ The Machine Learning service is responsible for transforming raw metrics, runnin
 
 ---
 
+### Module C: `sentinel-prescription` (Generative AI Prescription Engine)
+The Generative AI service reads metrics, generates structured prompts, fetches prescriptions from Groq, validates the format, and persists recommendations.
+
+1. **`db.py`**
+   * **Purpose**: SQLAlchemy connection engine.
+   * **Mechanism**: Connects to the same `sentinel_health` database using SQLAlchemy with a thread-safe connection pool (`pool_size=10`). Overrides default env values via `load_dotenv(override=True)`.
+2. **`prescription_schema.sql`**
+   * **Purpose**: Schema declaration file.
+   * **Mechanism**: Script to initialize the `prescriptions` table storing root cause summaries, severity levels, action steps, token counts, and Groq metadata linked to inferences and scans.
+3. **`apply_schema.py`**
+   * **Purpose**: Database schema applier.
+   * **Mechanism**: Auto-executes the SQL script against MySQL safely using `.env` credentials, using utf8mb4 encoding and bypassing Windows terminal unicode emoji print limitations.
+4. **`prompt_builder.py`**
+   * **Purpose**: Generates semantic prompt templates for the LLM.
+   * **Mechanism**: Maps the row metrics (Jira velocity, task aging, Discord messages, VADER sentiment, GitHub commit frequency, and code churn) and SHAP drivers into a detailed project failure diagnosis template, masking user names and replacing nulls with `"N/A"`.
+5. **`llm_client.py`**
+   * **Purpose**: LangChain v1 Groq client with fallback support.
+   * **Mechanism**: Imports `init_chat_model` and `ChatPromptTemplate` from `langchain_core`. Combines a primary Groq API key and a fallback Groq API key using `.with_fallbacks([fallback_llm])`. Executes fully asynchronously via `.ainvoke()`, wrapping requests in a 3-attempt exponential back-off handler.
+6. **`response_parser.py`**
+   * **Purpose**: Parses, normalizes, and validates LLM responses.
+   * **Mechanism**: Uses **Pydantic v2** `BaseModel` and field validators. Strips Markdown fences, parses JSON, and pads/trims action steps to guarantee exactly 5 steps. If severity is missing or invalid, it infers it from the `stability_score`.
+7. **`prescription_service.py`**
+   * **Purpose**: Generative AI pipeline coordinator.
+   * **Mechanism**: Orchestrates the prescription cycle. Fetches inference details, verifies the `AT_RISK` label, joins telemetry tables, calculates real VADER messages sentiment, runs the LLM client, and parses response structures. If both keys are offline or parsing fails, it safely saves fallback logs to prevent process crashes.
+8. **`trigger.py`**
+   * **Purpose**: Module 2 integration helper.
+   * **Mechanism**: Contains `auto_trigger_prescription` which sends an HTTP POST request to the prescription server from `sentinel-ml/main.py` when an `AT_RISK` project is identified, returning the prescription JSON.
+9. **`main.py`**
+   * **Purpose**: FastAPI microservice endpoint.
+   * **Endpoints**:
+     * `POST /api/prescription/generate`: Triggers a prescription manually.
+     * `POST /api/prescription/generate-all-pending`: Batches all un-prescribed `AT_RISK` rows using `asyncio.Semaphore(3)`.
+     * `GET /api/prescription/{project_id}/latest`: Gets the latest prescription.
+     * `GET /api/prescription/{project_id}/history`: Gets prescription history.
+     * `GET /api/prescription/health`: Verifies service status, primary/fallback key config status, and DB connections.
+
+---
+
 ## 3. Step-by-Step Execution Flows
 
-### Flow 1: Telemetry Data Collection (API Gateway)
+### End-to-End Inference and Prescription Flow
+
+This sequence diagrams the entire execution path when a caller requests an inference status update:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Client
-    participant API Gateway (Server)
-    participant Telemetry Service
-    participant Adapters (GH, Jira, Discord)
-    participant MySQL DB
+    participant Client as Caller Client
+    participant ML as sentinel-ml (Port 8000)
+    participant DB as MySQL DB
+    participant PR as sentinel-prescription (Port 8001)
+    participant LLM as Groq API (Llama-3)
 
-    Client->>API Gateway (Server): HTTP POST /api/telemetry/collect (projectId)
-    Note over API Gateway (Server): Alternatively triggered by scheduler.js cron job
-    API Gateway (Server)->>Telemetry Service: runTelemetryScan(projectId)
-    activate Telemetry Service
-    Telemetry Service->>MySQL DB: Create TelemetryScan record (status: 'partial')
-    Telemetry Service->>Adapters (GH, Jira, Discord): Concurrently call fetch() methods
-    activate Adapters (GH, Jira, Discord)
-    Adapters (GH, Jira, Discord)->>Adapters (GH, Jira, Discord): Fetch GitHub (commits/PRs), Jira (JQL metrics), Discord (channel messages)
-    Adapters (GH, Jira, Discord)-->>Telemetry Service: Return resolved metrics & messages
-    deactivate Adapters (GH, Jira, Discord)
-    Telemetry Service->>MySQL DB: Write metrics and bulk create messages
-    Telemetry Service->>MySQL DB: Update TelemetryScan (status: 'complete' or 'partial')
-    Telemetry Service-->>API Gateway (Server): Return scan_id & status
-    deactivate Telemetry Service
-    API Gateway (Server)-->>Client: Response JSON (scan_id, status)
+    Client->>ML: POST /api/infer (projectId, scanId)
+    ML->>DB: Fetch Raw Telemetry Metrics & Messages
+    DB-->>ML: Return Telemetry
+    ML->>ML: Feature Engineering & Model Predictions<br/>1. SVM: health_label<br/>2. RF: stability_score<br/>3. IF: anomaly_detected
+    ML->>ML: Explainer calculates SHAP drivers
+    ML->>DB: INSERT INTO inference_results
+    Note over ML,PR: If health_label is AT_RISK:
+    ML->>PR: POST /api/prescription/generate (inference_id)
+    activate PR
+    PR->>DB: Query joined Telemetry & Inference row
+    DB-->>PR: Return Data
+    PR->>PR: Compute NLTK VADER sentiment on raw Discord content
+    PR->>PR: Build prompt template (masking PII, rounding floats)
+    PR->>LLM: ainvoke prompt (via LangChain primary chain)
+    activate LLM
+    Note over PR,LLM: If primary API key rate limits, falls back to secondary key
+    LLM-->>PR: Return Raw JSON string
+    deactivate LLM
+    PR->>PR: Parse & Validate (Pydantic v2)<br/>1. Strip code fences<br/>2. Guarantee exactly 5 action steps<br/>3. Handle missing/invalid severity fallback
+    PR->>DB: INSERT INTO prescriptions table
+    PR-->>ML: Return Prescription JSON response
+    deactivate PR
+    ML-->>Client: Return JSON response containing both Inference Results AND Prescription details!
 ```
-
----
-
-### Flow 2: Machine Learning Inference (Sentinel-ML)
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Client
-    participant FastAPI (main.py)
-    participant Feature Engineering
-    participant Models (SVM, RF, IF)
-    participant SHAP Explainer
-    participant MySQL DB
-
-    Client->>FastAPI (main.py): HTTP POST /api/infer (project_id, scan_id)
-    FastAPI (main.py)->>Feature Engineering: get_raw_features(scan_id)
-    activate Feature Engineering
-    Feature Engineering->>MySQL DB: Query telemetry metrics & messages for scan
-    MySQL DB-->>Feature Engineering: Return raw datasets
-    Feature Engineering->>Feature Engineering: Compute VADER Sentiment, Sprint Velocity Ratio, Impute missing columns, Compute thresholds/flags
-    Feature Engineering-->>FastAPI (main.py): Return engineered feature row
-    deactivate Feature Engineering
-    FastAPI (main.py)->>FastAPI (main.py): Scale float columns using MinMaxScaler (scaler.joblib)
-    
-    activate Models (SVM, RF, IF)
-    FastAPI (main.py)->>Models (SVM, RF, IF): Pass scaled feature vector
-    Models (SVM, RF, IF)->>Models (SVM, RF, IF): 1. SVM predicts binary class (HEALTHY / AT_RISK)<br/>2. RF predicts probability of AT_RISK -> Stability Score = (1 - prob) * 100<br/>3. IF checks if outlier (anomaly)
-    Models (SVM, RF, IF)-->>FastAPI (main.py): Return predictions, probability, and anomaly state
-    deactivate Models (SVM, RF, IF)
-
-    FastAPI (main.py)->>SHAP Explainer: get_top_risk_drivers(scaled_vector)
-    activate SHAP Explainer
-    SHAP Explainer->>SHAP Explainer: Compute Shapley contribution values & extract top 3 absolute values
-    SHAP Explainer->>SHAP Explainer: Map feature names to diagnostic warnings
-    SHAP Explainer-->>FastAPI (main.py): Return array of top 3 drivers
-    deactivate SHAP Explainer
-
-    FastAPI (main.py)->>MySQL DB: INSERT INTO inference_results
-    FastAPI (main.py)-->>Client: Return JSON response (Label, Stability Score, Anomaly Status, top_risk_drivers)
-```
-
----
-
-### Flow 3: Model Training (Offline / Background)
-
-1. **Triggering**: A `POST /api/train` call to FastAPI adds the training task to Python’s ASGI event loops as a background task.
-2. **Feature Generation**: The engine executes `get_raw_features()` to read **all** historical metrics and message entries from MySQL.
-3. **Data Labeling**: `labeller.py` calculates normalized code churn and applies deterministic project health rules to split historical records into `HEALTHY` (class 0) or `AT_RISK` (class 1).
-4. **Data Balancing**: The script partitions the data (80/20 train/test split) and applies **SMOTE** on the training features. This synthesizes minority class variations to ensure the SVM/RF models are not biased.
-5. **Feature Scaling**: Fits a new `MinMaxScaler` on training features, transforming both the training and test matrices.
-6. **Parallel Model Fitting**:
-   * Trains **SVM Classifier** (`svm_classifier.joblib`) to handle project health boundaries.
-   * Trains **Random Forest Scorer** (`rf_stability.joblib`) to estimate probabilities.
-   * Trains **Isolation Forest** (`isolation_forest.joblib`) on the full unlabelled dataset to establish normal operating boundaries.
-7. **Explainer Base Initialization**: Extracts a background reference set of 50 samples, saving it as `background_data.joblib` for use in SHAP.
-8. **Performance Reporting**: Tests the newly trained models on the 20% test slice. It writes F1-scores, precision, recall, AUC-ROC metrics, and anomaly metrics to `models/evaluation_report.txt`.
-9. **Hot Reloading**: The FastAPI server automatically reloads the newly dumped joblib files into memory, allowing immediately updated inference without service downtime.

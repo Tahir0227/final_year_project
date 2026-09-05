@@ -1,0 +1,16 @@
+{
+  "name": "sentinel-health-ai",
+  "version": "1.0.0",
+  "description": "Root manager for running all 4 modules of Sentinel-Health AI simultaneously",
+  "scripts": {
+    "install:all": "npm install --prefix api-gateway && npm install --prefix sentinel-dashboard",
+    "dev:gateway": "npm run dev --prefix api-gateway",
+    "dev:ml": "cd sentinel-ml && py -m uvicorn main:app --port 8000",
+    "dev:prescription": "cd sentinel-prescription && py main.py",
+    "dev:dashboard": "npm run dev --prefix sentinel-dashboard",
+    "start": "concurrently --kill-others -n \"gateway,ml,prescr,dashbd\" -c \"cyan,green,magenta,blue\" \"npm run dev:gateway\" \"npm run dev:ml\" \"npm run dev:prescription\" \"npm run dev:dashboard\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

@@ -1,17 +1,194 @@
-=== SVM Classifier ===
-F1-Score: 0.90
-Precision: 0.90
-Recall: 0.90
-AUC-ROC: 0.97
+╔══════════════════════════════════════════════════════════════════╗
+║         SENTINEL-HEALTH AI — MODEL EVALUATION REPORT            ║
+╚══════════════════════════════════════════════════════════════════╝
+Generated: 2026-08-27 20:26:55
+Training samples: 5000
+Test samples: 1000
 
-=== Random Forest ===
-F1-Score: 1.00
-AUC-ROC: 1.00
+══════════════════════════════════════════
+MODEL 1: SVM CLASSIFIER
+══════════════════════════════════════════
+Best Hyperparameters: {'C': 100, 'break_ties': False, 'cache_size': 200, 'class_weight': 'balanced', 'coef0': 0.0, 'decision_function_shape': 'ovr', 'degree': 3, 'gamma': 0.01, 'kernel': 'rbf', 'max_iter': -1, 'probability': True, 'random_state': 42, 'shrinking': True, 'tol': 0.001, 'verbose': False}
 
-=== Isolation Forest ===
-Anomaly Rate on test set: 5.26%
+TRAINING SET:
+  Accuracy:  0.9518 (95.18%)
+  F1-Score:  0.9519
+  Precision: 0.9495
+  Recall:    0.9544
+  AUC-ROC:   0.9910
 
-Training samples (after SMOTE): 72
-Test samples: 19
-Class distribution before SMOTE: {1: 36, 0: 36}
-Class distribution after SMOTE: {1: 36, 0: 36}
+TEST SET:
+  Accuracy:  0.9580 (95.80%)
+  F1-Score:  0.9582
+  Precision: 0.9544
+  Recall:    0.9620
+  AUC-ROC:   0.9920
+  Avg Precision: 0.9916
+
+Confusion Matrix (Test):
+[[477  23]
+ [ 19 481]]
+
+Classification Report (Test):
+              precision    recall  f1-score   support
+
+           0       0.96      0.95      0.96       500
+           1       0.95      0.96      0.96       500
+
+    accuracy                           0.96      1000
+   macro avg       0.96      0.96      0.96      1000
+weighted avg       0.96      0.96      0.96      1000
+
+
+══════════════════════════════════════════
+MODEL 2: RANDOM FOREST STABILITY SCORER
+══════════════════════════════════════════
+Best Hyperparameters: {'bootstrap': True, 'ccp_alpha': 0.0, 'class_weight': 'balanced', 'criterion': 'gini', 'max_depth': None, 'max_features': 'log2', 'max_leaf_nodes': None, 'max_samples': None, 'min_impurity_decrease': 0.0, 'min_samples_leaf': 1, 'min_samples_split': 10, 'min_weight_fraction_leaf': 0.0, 'monotonic_cst': None, 'n_estimators': 200, 'n_jobs': None, 'oob_score': True, 'random_state': 42, 'verbose': 0, 'warm_start': False}
+OOB Score: 0.9462
+
+TRAINING SET:
+  Accuracy:  0.9924 (99.24%)
+  F1-Score:  0.9924
+  Precision: 0.9897
+  Recall:    0.9952
+  AUC-ROC:   0.9998
+
+TEST SET:
+  Accuracy:  0.9540 (95.40%)
+  F1-Score:  0.9538
+  Precision: 0.9577
+  Recall:    0.9500
+  AUC-ROC:   0.9900
+  Avg Precision: 0.9897
+
+Confusion Matrix (Test):
+[[479  21]
+ [ 25 475]]
+
+Classification Report (Test):
+              precision    recall  f1-score   support
+
+           0       0.95      0.96      0.95       500
+           1       0.96      0.95      0.95       500
+
+    accuracy                           0.95      1000
+   macro avg       0.95      0.95      0.95      1000
+weighted avg       0.95      0.95      0.95      1000
+
+
+══════════════════════════════════════════
+MODEL 3: GRADIENT BOOSTING CLASSIFIER
+══════════════════════════════════════════
+Best Hyperparameters: {'ccp_alpha': 0.0, 'criterion': 'friedman_mse', 'init': None, 'learning_rate': 0.05, 'loss': 'log_loss', 'max_depth': 5, 'max_features': None, 'max_leaf_nodes': None, 'min_impurity_decrease': 0.0, 'min_samples_leaf': 1, 'min_samples_split': 2, 'min_weight_fraction_leaf': 0.0, 'n_estimators': 200, 'n_iter_no_change': None, 'random_state': 42, 'subsample': 0.8, 'tol': 0.0001, 'validation_fraction': 0.1, 'verbose': 0, 'warm_start': False}
+
+TRAINING SET:
+  Accuracy:  0.9926 (99.26%)
+  F1-Score:  0.9926
+  Precision: 0.9908
+  Recall:    0.9944
+  AUC-ROC:   0.9998
+
+TEST SET:
+  Accuracy:  0.9500 (95.00%)
+  F1-Score:  0.9500
+  Precision: 0.9500
+  Recall:    0.9500
+  AUC-ROC:   0.9905
+  Avg Precision: 0.9903
+
+Confusion Matrix (Test):
+[[475  25]
+ [ 25 475]]
+
+Classification Report (Test):
+              precision    recall  f1-score   support
+
+           0       0.95      0.95      0.95       500
+           1       0.95      0.95      0.95       500
+
+    accuracy                           0.95      1000
+   macro avg       0.95      0.95      0.95      1000
+weighted avg       0.95      0.95      0.95      1000
+
+
+══════════════════════════════════════════
+MODEL 4: ENSEMBLE VOTING CLASSIFIER
+══════════════════════════════════════════
+Best Hyperparameters: {'estimators': [('svm', SVC(C=100, class_weight='balanced', gamma=0.01, probability=True,
+    random_state=42)), ('rf', RandomForestClassifier(class_weight='balanced', max_features='log2',
+                       min_samples_split=10, n_estimators=200, oob_score=True,
+                       random_state=42)), ('gb', GradientBoostingClassifier(learning_rate=0.05, max_depth=5, n_estimators=200,
+                           random_state=42, subsample=0.8))], 'flatten_transform': True, 'n_jobs': None, 'verbose': False, 'voting': 'soft', 'weights': [1, 2, 1], 'svm': SVC(C=100, class_weight='balanced', gamma=0.01, probability=True,
+    random_state=42), 'rf': RandomForestClassifier(class_weight='balanced', max_features='log2',
+                       min_samples_split=10, n_estimators=200, oob_score=True,
+                       random_state=42), 'gb': GradientBoostingClassifier(learning_rate=0.05, max_depth=5, n_estimators=200,
+                           random_state=42, subsample=0.8), 'svm__C': 100, 'svm__break_ties': False, 'svm__cache_size': 200, 'svm__class_weight': 'balanced', 'svm__coef0': 0.0, 'svm__decision_function_shape': 'ovr', 'svm__degree': 3, 'svm__gamma': 0.01, 'svm__kernel': 'rbf', 'svm__max_iter': -1, 'svm__probability': True, 'svm__random_state': 42, 'svm__shrinking': True, 'svm__tol': 0.001, 'svm__verbose': False, 'rf__bootstrap': True, 'rf__ccp_alpha': 0.0, 'rf__class_weight': 'balanced', 'rf__criterion': 'gini', 'rf__max_depth': None, 'rf__max_features': 'log2', 'rf__max_leaf_nodes': None, 'rf__max_samples': None, 'rf__min_impurity_decrease': 0.0, 'rf__min_samples_leaf': 1, 'rf__min_samples_split': 10, 'rf__min_weight_fraction_leaf': 0.0, 'rf__monotonic_cst': None, 'rf__n_estimators': 200, 'rf__n_jobs': None, 'rf__oob_score': True, 'rf__random_state': 42, 'rf__verbose': 0, 'rf__warm_start': False, 'gb__ccp_alpha': 0.0, 'gb__criterion': 'friedman_mse', 'gb__init': None, 'gb__learning_rate': 0.05, 'gb__loss': 'log_loss', 'gb__max_depth': 5, 'gb__max_features': None, 'gb__max_leaf_nodes': None, 'gb__min_impurity_decrease': 0.0, 'gb__min_samples_leaf': 1, 'gb__min_samples_split': 2, 'gb__min_weight_fraction_leaf': 0.0, 'gb__n_estimators': 200, 'gb__n_iter_no_change': None, 'gb__random_state': 42, 'gb__subsample': 0.8, 'gb__tol': 0.0001, 'gb__validation_fraction': 0.1, 'gb__verbose': 0, 'gb__warm_start': False}
+
+TRAINING SET:
+  Accuracy:  0.9846 (98.46%)
+  F1-Score:  0.9846
+  Precision: 0.9832
+  Recall:    0.9860
+  AUC-ROC:   0.9992
+
+TEST SET:
+  Accuracy:  0.9580 (95.80%)
+  F1-Score:  0.9579
+  Precision: 0.9598
+  Recall:    0.9560
+  AUC-ROC:   0.9914
+  Avg Precision: 0.9909
+
+Confusion Matrix (Test):
+[[480  20]
+ [ 22 478]]
+
+Classification Report (Test):
+              precision    recall  f1-score   support
+
+           0       0.96      0.96      0.96       500
+           1       0.96      0.96      0.96       500
+
+    accuracy                           0.96      1000
+   macro avg       0.96      0.96      0.96      1000
+weighted avg       0.96      0.96      0.96      1000
+
+
+══════════════════════════════════════════
+MODEL 5: ISOLATION FOREST
+══════════════════════════════════════════
+Best contamination: 0.08
+Anomaly detection rate on anomaly_data.csv: 80.20%
+Normal data flagged as anomaly (false positive rate): 0.78%
+
+══════════════════════════════════════════
+COMPARISON TABLE
+══════════════════════════════════════════
+Model                Train Acc  Test Acc  Train F1  Test F1  AUC-ROC
+SVM                  0.9518     0.9580    0.9519    0.9582   0.9920
+Random Forest        0.9924     0.9540    0.9924    0.9538   0.9900
+Gradient Boosting    0.9926     0.9500    0.9926    0.9500   0.9905
+Ensemble             0.9846     0.9580    0.9846    0.9579   0.9914
+
+RECOMMENDED MODEL FOR INFERENCE: SVM
+OVERFITTING CHECK: None detected (all train/test accuracies are within 5% limits).
+
+══════════════════════════════════════════
+FEATURE IMPORTANCE (Random Forest)
+══════════════════════════════════════════
+Rank  Feature                  Importance
+  1    sprint_velocity_ratio     0.2010
+  2    sentiment_score           0.1664
+  3    contributor_count         0.1322
+  4    avg_task_aging_days       0.1191
+  5    active_users              0.0934
+  6    messages_per_day          0.0853
+  7    backlog_growth_rate       0.0713
+  8    commit_frequency          0.0566
+  9    pr_cycle_time_hours       0.0430
+  10   code_churn                0.0268
+  11   burnout_flag              0.0013
+  12   silo_flag                 0.0013
+  13   velocity_drop_flag        0.0013
+  14   aging_flag                0.0011
+

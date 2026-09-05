@@ -1,7 +1,7 @@
 {
   "name": "sentinel-telemetry",
   "version": "1.0.0",
-  "description": "Telemetry Ingestion Module for Sentinel-Health AI",
+  "description": "Telemetry Ingestion & Management API for Sentinel-Health AI",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -10,9 +10,15 @@
   "dependencies": {
     "@octokit/rest": "^20.0.0",
     "axios": "^1.6.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.6",
     "discord.js": "^14.14.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "express-rate-limit": "^7.0.0",
+    "express-validator": "^7.0.0",
+    "helmet": "^7.0.0",
+    "jsonwebtoken": "^9.0.0",
     "mysql2": "^3.6.5",
     "node-cron": "^3.0.3",
     "sequelize": "^6.35.1"

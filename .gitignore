@@ -1,6 +1,63 @@
+# ===================================================================
+# Sentinel-Health AI — Comprehensive Git Ignore Rules
+# ===================================================================
+
+# 1. Environment Variables & Secrets (CRITICAL: Do not push real keys)
 .env
+.env.*
+*.env
 **/.env
 **/.env.*
+**/.env.local
+**/.env.*.local
+!**/.env.example
+
+# 2. Node.js dependencies & logs
 node_modules/
 **/node_modules/
-api-gateway/config/config.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# 3. Frontend build outputs & caches
+dist/
+**/dist/
+dist-ssr/
+**/dist-ssr/
+.vite/
+**/.vite/
+
+# 4. Python bytecode, caches & virtual environments
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 5. Application logs & debug traces
+*.log
+logs/
+**/logs/
+
+# 6. IDE, Editor & OS temporary files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
