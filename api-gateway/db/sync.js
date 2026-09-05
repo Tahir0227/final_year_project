@@ -13,8 +13,7 @@ async function syncDB() {
   try {
     await sequelize.authenticate();
     console.log('[DB] Connection has been established successfully.');
-    // Set alter: true or force: false to prevent data loss while updating schema
-    await sequelize.sync({ alter: true });
+    await sequelize.sync();
     console.log('[DB] All models were synchronized successfully.');
   } catch (error) {
     console.error('[DB] Unable to connect to the database:', error.message);

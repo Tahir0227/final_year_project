@@ -14,10 +14,10 @@
 
 ## 📌 Executive Summary
 
-Modern software teams suffer from fragmented observability: code velocity lives in GitHub, task management in Jira, and team sentiment in Discord. Project failures, missed deadlines, and sprint collapses usually happen quietly before managers notice.
+Modern software development teams suffer from fragmented observability: commit velocity lives in GitHub, sprint tracking in Jira, and team communication in Discord. Project failures, missed deadlines, and sprint collapses usually happen quietly before managers notice.
 
 **Sentinel-Health AI** functions as a **"Digital Stethoscope"** that continuously monitors project vital signs:
-1. **Module 1 (API Gateway & Ingestion):** Collects telemetry from GitHub (commits, churn, PR cycle time), Jira (sprint velocity, task aging, backlog growth), and Discord (message velocity, sentiment).
+1. **Module 1 (API Gateway & Ingestion):** Collects telemetry from GitHub (commits, code churn, PR cycle time), Jira (sprint velocity, task aging, backlog growth), and Discord (message volume, sentiment).
 2. **Module 2 (ML Inference & Explainability):** Runs an ensemble ML model (Ensemble Voting Classifier + SVM + Random Forest + Isolation Forest + Gradient Boosting) to classify project health (`HEALTHY` vs `AT_RISK`), predict a 0–100 stability score, detect anomalies, and generate SHAP explainability risk drivers.
 3. **Module 3 (AI Prescription Engine):** Uses high-speed LLM inference via Groq to analyze root causes and generate concrete, 5-step actionable recovery plans.
 4. **Module 4 (Executive Dashboard):** An interactive React 18 dashboard featuring real-time health gauges, risk heatmaps, SHAP feature attribution charts, notifications, multi-project management, an interactive setup guide, and user glossary.
@@ -60,12 +60,171 @@ Modern software teams suffer from fragmented observability: code velocity lives 
 
 ---
 
+## ⚙️ Prerequisites
+
+Before you start, make sure you have the following installed on your machine:
+
+- **Node.js** `v18.0.0` or higher ([Download Node.js](https://nodejs.org/))
+- **Python** `3.10` to `3.13` ([Download Python](https://www.python.org/))
+- **MySQL Server** `8.0` or higher ([Download MySQL](https://dev.mysql.com/downloads/installer/))
+- **Git** ([Download Git](https://git-scm.com/))
+- *(Optional)* Free Groq API Key ([Get Groq Key](https://console.groq.com/keys))
+
+---
+
+## 🚀 Complete Step-by-Step Setup Guide
+
+Follow these steps to run the complete application on a fresh machine in less than 5 minutes:
+
+### Step 1: Clone the Repository
+```bash
+git clone https://github.com/Tahir0227/final_year_project.git
+cd final_year_project
+```
+
+---
+
+### Step 2: Install All Dependencies (Single Command)
+Run the automated installation script from the project root:
+```bash
+# Installs Node dependencies for root, API gateway, and Dashboard
+npm run install:all
+
+# Installs Python dependencies for ML Engine and Prescription Engine
+npm run install:python
+```
+
+*(Alternatively, if installing manually:)*
+```bash
+npm install
+cd api-gateway && npm install
+cd ../sentinel-dashboard && npm install
+cd ../sentinel-ml && pip install -r requirements.txt
+cd ../sentinel-prescription && pip install -r requirements.txt
+cd ..
+```
+
+---
+
+### Step 3: Setup Environment Files (`.env`)
+Create `.env` files in each sub-service folder:
+
+#### 📁 `api-gateway/.env`
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=sentinel_health
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+
+PORT=3000
+SCAN_INTERVAL_MINUTES=30
+JWT_SECRET=super_secret_jwt_key_sentinel_2026_xyz
+JWT_EXPIRES_IN=30d
+ENCRYPTION_KEY=a1bafe42bc392fd51522d5b8e736ac8ed93c58d8bf677240b6bf04307377f75d
+
+ML_INFERENCE_URL=http://localhost:8000
+PRESCRIPTION_SERVICE_URL=http://localhost:8001
+FRONTEND_URL=http://localhost:5173
+```
+
+#### 📁 `sentinel-ml/.env`
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=sentinel_health
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+ML_SERVICE_PORT=8000
+```
+
+#### 📁 `sentinel-prescription/.env`
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=sentinel_health
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+
+# Get free Groq API key from https://console.groq.com
+GROQ_API_KEY_PRIMARY=gsk_your_primary_groq_api_key_here
+GROQ_API_KEY_FALLBACK=gsk_your_fallback_groq_api_key_here
+GROQ_MODEL=openai/gpt-oss-20b
+
+PRESCRIPTION_SERVICE_PORT=8001
+MAX_CONCURRENT_PRESCRIPTIONS=3
+```
+
+#### 📁 `sentinel-dashboard/.env`
+```env
+VITE_API_BASE_URL=http://localhost:3000
+```
+
+---
+
+### Step 4: Create Complete Database (Single Command)
+
+Ensure your MySQL Server service is running. Then run the automated database setup command from the project root:
+
+```bash
+npm run setup:db
+```
+
+**What this command does automatically:**
+1. Connects to your MySQL server.
+2. Creates the `sentinel_health` database if it doesn't already exist.
+3. Automatically creates all 13 tables, foreign keys, and indexes (`users`, `projects`, `telemetry_scans`, `github_metrics`, `jira_metrics`, `discord_metrics`, `discord_messages`, `inference_results`, `shap_values`, `prescriptions`, `notifications`, `scan_schedules`, `alerts`).
+
+*(Alternative Manual Option)*: If you prefer using MySQL CLI or MySQL Workbench, you can run the provided master SQL schema directly:
+```bash
+mysql -u root -p < database_schema.sql
+```
+
+---
+
+### Step 5: Start the Application (Single Command)
+
+From the project root directory, run:
+```bash
+npm start
+```
+
+This single command launches all 4 services concurrently in colored terminal outputs:
+- 🟢 **API Gateway:** `http://localhost:3000`
+- 🟢 **ML Inference Engine:** `http://localhost:8000`
+- 🟣 **AI Prescription Engine:** `http://localhost:8001`
+- 🔵 **React Dashboard UI:** `http://localhost:5173`
+
+---
+
+## 🖥️ Using the Application
+
+1. Open your browser and navigate to **`http://localhost:5173`**.
+2. **Register / Login:** Create an account on the registration page and log in.
+3. **Add a Project:** Click **"Add Project"** and follow the setup wizard:
+   - Provide your project name, target completion deadline, and description.
+   - Enter your GitHub repository details and Personal Access Token (PAT).
+   - *(Optional)* Enter Jira Cloud credentials (Base URL, email, API token, Project Key).
+   - *(Optional)* Enter Discord Bot token and Channel ID.
+4. **Run Full Analysis Pipeline:**
+   - On the Project Details page, click **"Execute Full Analysis Pipeline"**.
+   - The system ingests telemetry → computes 10 engineered features → runs the ML Ensemble + SHAP → generates AI prescriptions.
+5. **Explore Project Diagnostics:**
+   - **Health Overview:** Animated stability gauge (0–100), health label (`HEALTHY` / `AT_RISK`), and 3-pillar risk heatmap.
+   - **Telemetry:** Ingested commit velocity, PR cycle times, code churn, sprint velocity, task aging, and Discord sentiment.
+   - **Alerts & SHAP Drivers:** Quantified root-cause risk breakdown explaining why the stability score dropped.
+   - **AI Prescriptions:** LLM-generated root cause summary with 5 prioritized, actionable recovery steps.
+   - **User Guide:** Integrated Glossary explaining all metrics + Setup guide with instructions on generating API keys.
+
+---
+
 ## 📂 Repository Structure
 
 ```
 final_year_project/
 ├── .gitignore                      # Multi-stack ignore rules (Node, Vite, Python)
 ├── package.json                    # Root launcher ("npm start" starts all 4 services)
+├── database_schema.sql             # Master SQL database schema
 ├── README.md                       # Master project documentation
 ├── flow_readme.md                  # Comprehensive data flow & pipeline specs
 │
@@ -80,6 +239,7 @@ final_year_project/
 │   │   └── jiraAdapter.js          # Jira Cloud REST v3 adapter
 │   ├── db/                         # Database connection & Sequelize sync
 │   │   ├── connection.js           # MySQL connection pool
+│   │   ├── init_database.js        # Automated one-command DB setup script
 │   │   ├── schema.sql              # Telemetry table schemas
 │   │   └── sync.js                 # Automated ORM synchronization
 │   ├── middleware/                 # Middleware
@@ -171,113 +331,6 @@ final_year_project/
 
 ---
 
-## ⚙️ Prerequisites & Tech Stack
-
-| Component | Technology | Version |
-|---|---|---|
-| **Frontend** | React, Vite, TailwindCSS, Chart.js, Heroicons | React 18+, Node 18+ |
-| **API Gateway** | Node.js, Express, Sequelize, Axios, node-cron | Node 18+ |
-| **ML Engine** | Python, FastAPI, Scikit-learn, SHAP, Joblib, Pandas | Python 3.10 – 3.13 |
-| **Prescription** | Python, FastAPI, Groq SDK, LangChain, Pydantic v2 | Python 3.10 – 3.13 |
-| **Database** | MySQL Server | 8.0+ |
-
----
-
-## 🚀 Quickstart & Setup Guide
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/Tahir0227/final_year_project.git
-cd final_year_project
-```
-
-### 2. Database Configuration
-Ensure MySQL Server is running, then create the database:
-```sql
-CREATE DATABASE sentinel_health;
-```
-
-### 3. Install Dependencies
-Run the install command from root:
-```bash
-npm run install:all
-```
-And install Python requirements for ML and Prescription services:
-```bash
-cd sentinel-ml && pip install -r requirements.txt
-cd ../sentinel-prescription && pip install -r requirements.txt
-cd ..
-```
-
-### 4. Configure Environment Variables
-Create `.env` in each subfolder:
-
-#### `api-gateway/.env`
-```env
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=sentinel_health
-DB_USER=root
-DB_PASSWORD=your_mysql_password
-
-PORT=3000
-SCAN_INTERVAL_MINUTES=30
-JWT_SECRET=your_super_secret_jwt_key_here
-JWT_EXPIRES_IN=30d
-ENCRYPTION_KEY=a1bafe42bc392fd51522d5b8e736ac8ed93c58d8bf677240b6bf04307377f75d
-
-ML_INFERENCE_URL=http://localhost:8000
-PRESCRIPTION_SERVICE_URL=http://localhost:8001
-FRONTEND_URL=http://localhost:5173
-```
-
-#### `sentinel-ml/.env`
-```env
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=sentinel_health
-DB_USER=root
-DB_PASSWORD=your_mysql_password
-ML_SERVICE_PORT=8000
-```
-
-#### `sentinel-prescription/.env`
-```env
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=sentinel_health
-DB_USER=root
-DB_PASSWORD=your_mysql_password
-GROQ_API_KEY_PRIMARY=your_groq_api_key_primary
-GROQ_API_KEY_FALLBACK=your_groq_api_key_fallback
-GROQ_MODEL=openai/gpt-oss-20b
-PRESCRIPTION_SERVICE_PORT=8001
-MAX_CONCURRENT_PRESCRIPTIONS=3
-```
-
-#### `sentinel-dashboard/.env`
-```env
-VITE_API_BASE_URL=http://localhost:3000
-```
-
----
-
-### 5. Launch All Services (One Command)
-
-From the project root:
-```bash
-npm start
-```
-This runs `concurrently` to boot:
-- **API Gateway**: `http://localhost:3000`
-- **ML Inference Engine**: `http://localhost:8000`
-- **AI Prescription Engine**: `http://localhost:8001`
-- **Dashboard UI**: `http://localhost:5173`
-
-Open [http://localhost:5173](http://localhost:5173) in your browser.
-
----
-
 ## 🔬 Core ML Features & Telemetry
 
 The system extracts 10 real-time telemetry metrics:
@@ -297,12 +350,22 @@ The system extracts 10 real-time telemetry metrics:
 
 ---
 
-## 🛡️ Key System Highlights
+## 🛠️ Troubleshooting & FAQ
 
-- **AES-256 Credential Encryption:** GitHub tokens, Jira API keys, and Discord bot credentials are encrypted at rest using AES-256-CBC.
-- **Fail-Safe Pipeline Orchestration:** Pipeline continues with partial telemetry even if one external provider temporarily encounters API rate limits.
-- **Dual-Key LLM Failover:** Groq API automatically cascades from primary to fallback key if rate limits (`429`) or server errors occur.
-- **Interactive User Guide:** Built-in Glossary of terms and Step-by-Step Setup Guide with credential creation instructions.
+<details>
+<summary><b>1. "Database Setup Error: Access denied for user 'root'@'localhost'"</b></summary>
+Make sure your MySQL server is running and check that <code>DB_PASSWORD</code> in <code>api-gateway/.env</code> matches your local MySQL root password.
+</details>
+
+<details>
+<summary><b>2. "Port 3000 / 8000 / 8001 / 5173 already in use"</b></summary>
+Another process is running on one of the ports. Terminate existing Node/Python processes or modify the port numbers in your <code>.env</code> files.
+</details>
+
+<details>
+<summary><b>3. "Groq API rate limit or invalid API key"</b></summary>
+Sentinel-Health AI includes dual-key automatic failover. Ensure you provide a valid primary Groq key in <code>sentinel-prescription/.env</code>. You can obtain free keys at <a href="https://console.groq.com/keys">console.groq.com</a>.
+</details>
 
 ---
 

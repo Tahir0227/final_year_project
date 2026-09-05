@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "Root manager for running all 4 modules of Sentinel-Health AI simultaneously",
   "scripts": {
-    "install:all": "npm install --prefix api-gateway && npm install --prefix sentinel-dashboard",
+    "install:all": "npm install && npm install --prefix api-gateway && npm install --prefix sentinel-dashboard",
+    "install:python": "pip install -r sentinel-ml/requirements.txt && pip install -r sentinel-prescription/requirements.txt",
+    "setup:db": "node api-gateway/db/init_database.js",
     "dev:gateway": "npm run dev --prefix api-gateway",
     "dev:ml": "cd sentinel-ml && py -m uvicorn main:app --port 8000",
     "dev:prescription": "cd sentinel-prescription && py main.py",
